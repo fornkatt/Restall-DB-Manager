@@ -1,6 +1,22 @@
-[package]
-name = "restall_db_manager"
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.99"
+license = "GPL-3.0-only"
+publish = false
 
-[dependencies]
+[workspace.dependencies]
+domain = { path = "crates/domain" }
+application = { path = "crates/application" }
+infrastructure = { path = "crates/infrastructure" }
+ui = { path = "crates/ui" }
+slint = { version = "1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit",
+    "renderer-femtovg", "renderer-software", "accessibility"] }
+slint-build = "1.18.1"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
