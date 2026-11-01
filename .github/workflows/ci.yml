@@ -19,6 +19,8 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v2
       - name: Check formatting
         run: cargo fmt --all --check
+      - name: Check SPDX headers
+        run: cargo xtask spdx-headers --check
 
   build-and-test:
     name: Build and test (${{ matrix.os }})
