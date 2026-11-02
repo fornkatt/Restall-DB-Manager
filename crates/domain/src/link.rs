@@ -18,6 +18,7 @@ pub enum LinkProblem {
     NotHttps,
     HasCredentialsOrPort,
     InvalidHost,
+    HasDoubleSlashInPath,
     WrongHost,
     WrongPath,
     HasQueryOrFragment,
@@ -140,9 +141,19 @@ pub(crate) fn parse_https_url(text: &str) -> Result<Url, LinkProblem> {
     if !url.username().is_empty() || url.password().is_some() || url.port().is_some() {
         return Err(LinkProblem::HasCredentialsOrPort);
     }
+    if !has_multi_label_domain_host(&url) {
+        return Err(LinkProblem::InvalidHost);
+    }
+    if url.path().contains("//") {
+        return Err(LinkProblem::HasDoubleSlashInPath);
+    }
+    Ok(url)
+}
+
+fn has_multi_label_domain_host(url: &Url) -> bool {
     match url.host() {
-        Some(Host::Domain(domain)) if is_multi_label_domain(domain) => Ok(url),
-        _ => Err(LinkProblem::InvalidHost),
+        Some(Host::Domain(domain)) => is_multi_label_domain(domain),
+        _ => false,
     }
 }
 
