@@ -30,6 +30,21 @@ mod parse_https_url {
     }
 
     #[test]
+    fn double_slash_in_path_is_invalid() {
+        assert_eq!(
+            parse_https_url("https://github.com/fornkatt/renodx//renodx-control.addon64"),
+            Err(LinkProblem::HasDoubleSlashInPath)
+        );
+    }
+
+    #[test]
+    fn trailing_slash_is_valid() {
+        let result = parse_https_url("https://www.nexusmods.com/fallout76/mods/2559/");
+
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
     fn missing_host_typo_is_invalid() {
         assert_eq!(parse_https_url("https:///x"), Err(LinkProblem::InvalidHost));
     }
