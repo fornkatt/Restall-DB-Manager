@@ -70,12 +70,11 @@ pub fn add_missing() -> ExitCode {
     }
     println!("Added {added_count} header(s).");
 
-    match problem_count {
-        0 => ExitCode::SUCCESS,
-        _ => {
-            println!("{problem_count} source file(s) need fixing by hand.");
-            ExitCode::FAILURE
-        }
+    if problem_count == 0 {
+        ExitCode::SUCCESS
+    } else {
+        println!("{problem_count} source file(s) need fixing by hand.");
+        ExitCode::FAILURE
     }
 }
 
@@ -107,21 +106,18 @@ pub fn check() -> ExitCode {
             }
         }
     }
-    match problem_count {
-        0 => {
-            println!(
-                "All {} source files have valid SPDX headers.",
-                source_files.len()
-            );
-            ExitCode::SUCCESS
+    if problem_count == 0 {
+        println!(
+            "All {} source files have valid SPDX headers.",
+            source_files.len()
+        );
+        ExitCode::SUCCESS
+    } else {
+        println!("{problem_count} source file(s) need attention.");
+        if missing_count > 0 {
+            println!("Run `cargo xtask spdx-headers` to add the missing headers.");
         }
-        _ => {
-            println!("{problem_count} source file(s) need attention.");
-            if missing_count > 0 {
-                println!("Run `cargo xtask spdx-headers` to add the missing headers.");
-            }
-            ExitCode::FAILURE
-        }
+        ExitCode::FAILURE
     }
 }
 
@@ -242,7 +238,7 @@ fn collect_source_files_recursively(
     directory: &Path,
     source_files: &mut Vec<PathBuf>,
 ) -> io::Result<()> {
-    let entries = fs::read_dir(directory).map_err(|error| add_path_to_error(directory, error))?;
+    let entries = fs::read_dir(directory).map_err(|error| add_path_to_error(directory, &error))?;
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
@@ -259,7 +255,7 @@ fn collect_source_files_recursively(
     Ok(())
 }
 
-fn add_path_to_error(path: &Path, error: io::Error) -> io::Error {
+fn add_path_to_error(path: &Path, error: &io::Error) -> io::Error {
     io::Error::new(error.kind(), format!("{}: {error}", path.display()))
 }
 
