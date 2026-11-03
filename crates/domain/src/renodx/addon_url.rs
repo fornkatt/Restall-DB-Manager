@@ -34,6 +34,11 @@ impl Addon64Url {
     pub fn file_name(&self) -> &str {
         last_path_segment(&self.0)
     }
+
+    /// File names with equal keys are the same file on Windows, which ignores letter case.
+    pub fn file_name_comparison_key(&self) -> String {
+        self.file_name().to_ascii_lowercase()
+    }
 }
 
 impl Addon32Url {
@@ -49,6 +54,11 @@ impl Addon32Url {
     /// The file name exactly as it appears in the URL, percent-encoded. Letter case kept.
     pub fn file_name(&self) -> &str {
         last_path_segment(&self.0)
+    }
+
+    /// File names with equal keys are the same file on Windows, which ignores letter case.
+    pub fn file_name_comparison_key(&self) -> String {
+        self.file_name().to_ascii_lowercase()
     }
 }
 

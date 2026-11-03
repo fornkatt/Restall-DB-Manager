@@ -48,6 +48,22 @@ mod game_name {
 
         assert_eq!(format!("{value:*<10}"), "Control***");
     }
+
+    #[test]
+    fn comparison_keys_of_names_differing_only_in_case_are_equal() {
+        let first = GameName::parse("Control").unwrap();
+        let second = GameName::parse("CONTROL").unwrap();
+
+        assert_eq!(first.comparison_key(), second.comparison_key());
+    }
+
+    #[test]
+    fn comparison_keys_of_different_names_are_different() {
+        let first = GameName::parse("Control").unwrap();
+        let second = GameName::parse("Alan Wake").unwrap();
+
+        assert_ne!(first.comparison_key(), second.comparison_key());
+    }
 }
 mod maintainer {
     use super::*;

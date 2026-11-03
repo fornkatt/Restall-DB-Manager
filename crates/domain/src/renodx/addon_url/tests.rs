@@ -66,6 +66,19 @@ mod addon_64_url {
             "https://fornkatt.github.io/renodx/renodx-control.addon64***"
         );
     }
+
+    #[test]
+    fn file_name_comparison_keys_differing_only_in_case_are_equal() {
+        let first =
+            Addon64Url::parse("https://fornkatt.github.io/renodx/renodx-control.addon64").unwrap();
+        let second =
+            Addon64Url::parse("https://fornkatt.github.io/renodx/RenoDX-Control.addon64").unwrap();
+
+        assert_eq!(
+            first.file_name_comparison_key(),
+            second.file_name_comparison_key()
+        );
+    }
 }
 
 mod addon_32_url {
@@ -97,6 +110,19 @@ mod addon_32_url {
         assert_eq!(
             format!("{value:*<59}"),
             "https://fornkatt.github.io/renodx/renodx-control.addon32***"
+        );
+    }
+
+    #[test]
+    fn file_name_comparison_keys_differing_only_in_case_are_equal() {
+        let first =
+            Addon32Url::parse("https://fornkatt.github.io/renodx/renodx-control.addon32").unwrap();
+        let second =
+            Addon32Url::parse("https://fornkatt.github.io/renodx/RenoDX-Control.addon32").unwrap();
+
+        assert_eq!(
+            first.file_name_comparison_key(),
+            second.file_name_comparison_key()
         );
     }
 }

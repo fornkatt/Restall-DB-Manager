@@ -30,6 +30,11 @@ impl GameName {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Names with equal keys count as the same name. Letter case is ignored.
+    pub fn comparison_key(&self) -> String {
+        self.0.to_lowercase()
+    }
 }
 
 impl Maintainer {
