@@ -12,7 +12,7 @@ use domain::id::ModId;
 use domain::link::{DiscordUrl, DiscussionUrl, GameBananaUrl, NexusModsUrl};
 use domain::renodx::{Addon32Url, Addon64Url, GameMod, GameModParts, ModLinks, ModStatus};
 use domain::text::{GameName, Maintainer, Notes};
-use record::{GameModRecord, LinksRecord, StatusRecord, GameModsDocument, SchemaVersionProbe};
+use record::{GameModRecord, GameModsDocument, LinksRecord, SchemaVersionProbe, StatusRecord};
 use serde_json::error::Category;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
