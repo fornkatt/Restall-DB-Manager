@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 domain.workspace = true
+tracing.workspace = true
 
 [lints]
 workspace = true
