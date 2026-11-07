@@ -4,17 +4,24 @@
 #[cfg(test)]
 mod tests;
 
+use crate::FileStamp;
 use domain::id::ModIdProblem;
 use domain::link::LinkProblem;
-use domain::renodx::{GameMod, GameModProblem};
+use domain::renodx::{GameMod, GameModProblem, GameMods};
 use domain::text::TextProblem;
 use std::error::Error;
 use std::path::PathBuf;
 use std::{fmt, io};
 
 pub trait LoadGameMods {
-    /// Returns the entries in the order the file lists them.
-    fn load(&self) -> Result<Vec<GameMod>, LoadGameModsError>;
+    /// Returns the entries in the order the file lists them, with a stamp of the file as read.
+    fn load(&self) -> Result<LoadedGameMods, LoadGameModsError>;
+}
+
+#[derive(Debug)]
+pub struct LoadedGameMods {
+    pub entries: Vec<GameMod>,
+    pub stamp: FileStamp,
 }
 
 #[derive(Debug)]
@@ -119,6 +126,59 @@ impl Error for LoadGameModsError {
             | LoadGameModsError::UnexpectedShape { .. }
             | LoadGameModsError::UnsupportedSchemaVersion { .. }
             | LoadGameModsError::InvalidEntries(_) => None,
+        }
+    }
+}
+
+pub trait StoreGameMods {
+    /// Writes the entries in id order.
+    ///
+    /// Refuses when the file no longer matches `expected`, and returns the stamp of what it wrote.
+    fn store(
+        &self,
+        game_mods: &GameMods,
+        expected: &FileStamp,
+    ) -> Result<FileStamp, StoreGameModsError>;
+}
+
+#[derive(Debug)]
+pub enum StoreGameModsError {
+    ChangedOnDisk { path: PathBuf },
+    RemovedFromDisk { path: PathBuf },
+    Unreadable { path: PathBuf, source: io::Error },
+    Unwritable { path: PathBuf, source: io::Error },
+}
+
+impl fmt::Display for StoreGameModsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StoreGameModsError::ChangedOnDisk { path } => {
+                write!(f, "game mods file changed on disk: {}", path.display())
+            }
+            StoreGameModsError::RemovedFromDisk { path } => {
+                write!(
+                    f,
+                    "game mods file was removed from disk: {}",
+                    path.display()
+                )
+            }
+            StoreGameModsError::Unreadable { path, .. } => {
+                write!(f, "game mods file could not be read: {}", path.display())
+            }
+            StoreGameModsError::Unwritable { path, .. } => {
+                write!(f, "game mods file could not be written: {}", path.display())
+            }
+        }
+    }
+}
+
+impl Error for StoreGameModsError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            StoreGameModsError::Unreadable { source, .. }
+            | StoreGameModsError::Unwritable { source, .. } => Some(source),
+            StoreGameModsError::ChangedOnDisk { .. }
+            | StoreGameModsError::RemovedFromDisk { .. } => None,
         }
     }
 }

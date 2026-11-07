@@ -3,4 +3,7 @@
 
 mod ports;
 
-pub use ports::{EntryFieldProblem, EntryProblem, LoadGameMods, LoadGameModsError};
+pub use ports::{
+    EntryFieldProblem, EntryProblem, LoadGameMods, LoadGameModsError, LoadedGameMods,
+    StoreGameMods, StoreGameModsError,
+};
