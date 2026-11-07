@@ -214,11 +214,11 @@ mod load {
 
         fs::write(folder.join("game-mods.json"), text).unwrap();
 
-        let game_mods = GameModsJsonFile::in_repository(repository.path())
+        let loaded = GameModsJsonFile::in_repository(repository.path())
             .load()
             .unwrap();
 
-        assert_eq!(ids_of(&game_mods), vec!["control"]);
+        assert_eq!(ids_of(&loaded.entries), vec!["control"]);
     }
 
     #[test]
@@ -230,6 +230,184 @@ mod load {
         };
 
         assert!(path.ends_with("db/renodx/game-mods.json"), "{path:?}");
+    }
+}
+
+mod store {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn written_file_matches_the_expected_text() {
+        let repository = repository_containing(&document(&[
+            every_field_entry(),
+            MINIMAL_ENTRY_IN_ANOTHER_KEY_ORDER.to_string(),
+        ]));
+        let file = GameModsJsonFile::in_repository(repository.path());
+        let loaded = file.load().unwrap();
+
+        file.store(&game_mods_from(loaded.entries), &loaded.stamp)
+            .unwrap();
+
+        assert_eq!(read_game_mods_file(&repository), STORED_TEXT);
+    }
+
+    #[test]
+    fn stored_entries_load_back_unchanged() {
+        let repository = repository_containing(&document(&[
+            every_field_entry(),
+            MINIMAL_ENTRY_IN_ANOTHER_KEY_ORDER.to_string(),
+        ]));
+        let file = GameModsJsonFile::in_repository(repository.path());
+        let loaded = file.load().unwrap();
+        let game_mods = game_mods_from(loaded.entries);
+
+        file.store(&game_mods, &loaded.stamp).unwrap();
+
+        let reloaded = file.load().unwrap();
+        let stored_entries: Vec<GameMod> = game_mods.iter().cloned().collect();
+
+        assert_eq!(reloaded.entries, stored_entries);
+    }
+
+    #[test]
+    fn file_changed_on_disk_is_refused_and_left_untouched() {
+        let repository = repository_containing(&document(&[entry(
+            "control",
+            "Control",
+            "working",
+            NEXUS_ONLY_LINKS,
+        )]));
+        let file = GameModsJsonFile::in_repository(repository.path());
+        let loaded = file.load().unwrap();
+        let teammate_text = document(&[entry("alan-wake", "Alan Wake", "wip", NEXUS_ONLY_LINKS)]);
+
+        fs::write(game_mods_file_path(&repository), &teammate_text).unwrap();
+
+        let result = file.store(&game_mods_from(loaded.entries), &loaded.stamp);
+
+        assert!(
+            matches!(result, Err(StoreGameModsError::ChangedOnDisk { .. })),
+            "{result:?}"
+        );
+        assert_eq!(read_game_mods_file(&repository), teammate_text);
+        assert!(!file.temp_path().exists());
+    }
+
+    #[test]
+    fn returned_stamp_allows_the_next_store() {
+        let repository = repository_containing(&document(&[entry(
+            "control",
+            "Control",
+            "working",
+            NEXUS_ONLY_LINKS,
+        )]));
+        let file = GameModsJsonFile::in_repository(repository.path());
+        let loaded = file.load().unwrap();
+        let game_mods = game_mods_from(loaded.entries);
+        let stored_stamp = file.store(&game_mods, &loaded.stamp).unwrap();
+        let result = file.store(&game_mods, &stored_stamp);
+
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
+    fn file_with_byte_order_mark_can_be_stored() {
+        let repository = repository_containing(&format!(
+            "\u{FEFF}{}",
+            document(&[entry("control", "Control", "working", NEXUS_ONLY_LINKS)])
+        ));
+        let file = GameModsJsonFile::in_repository(repository.path());
+        let loaded = file.load().unwrap();
+        let result = file.store(&game_mods_from(loaded.entries), &loaded.stamp);
+
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    const EVERY_FIELD_LINKS: &str = r#"{
+        "snapshot64": "https://fornkatt.github.io/renodx/renodx-control.addon64",
+        "snapshot32": "https://fornkatt.github.io/renodx/renodx-control.addon32",
+        "nexusMods": "https://www.nexusmods.com/control/mods/1",
+        "gameBanana": "https://gamebanana.com/mods/680225",
+        "discord": "https://discord.gg/renodx",
+        "discussion": "https://github.com/clshortfuse/renodx/discussions/490"
+    }"#;
+    const MINIMAL_ENTRY_IN_ANOTHER_KEY_ORDER: &str = r#"{
+        "links": {"nexusMods": "https://www.nexusmods.com/alanwake/mods/1"},
+        "status": "wip", "maintainer": "John Rust", "name": "Alan Wake", "id": "alan-wake"
+    }"#;
+    const STORED_TEXT: &str = r#"{
+  "schemaVersion": 1,
+  "games": [
+    {
+      "id": "alan-wake",
+      "name": "Alan Wake",
+      "maintainer": "John Rust",
+      "status": "wip",
+      "notes": null,
+      "links": {
+        "snapshot64": null,
+        "snapshot32": null,
+        "nexusMods": "https://www.nexusmods.com/alanwake/mods/1",
+        "gameBanana": null,
+        "discord": null,
+        "discussion": null
+      }
+    },
+    {
+      "id": "control",
+      "name": "Control",
+      "maintainer": "John Rust",
+      "status": "working",
+      "notes": "Lacks testing.",
+      "links": {
+        "snapshot64": "https://fornkatt.github.io/renodx/renodx-control.addon64",
+        "snapshot32": "https://fornkatt.github.io/renodx/renodx-control.addon32",
+        "nexusMods": "https://www.nexusmods.com/control/mods/1",
+        "gameBanana": "https://gamebanana.com/mods/680225",
+        "discord": "https://discord.gg/renodx",
+        "discussion": "https://github.com/clshortfuse/renodx/discussions/490"
+      }
+    }
+  ]
+}
+"#;
+
+    fn every_field_entry() -> String {
+        entry("control", "Control", "working", EVERY_FIELD_LINKS)
+            .replace(r#""notes": null"#, r#""notes": "Lacks testing.""#)
+    }
+
+    fn repository_containing(text: &str) -> TempDir {
+        let repository = TempDir::new().unwrap();
+        let path = game_mods_file_path(&repository);
+
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text).unwrap();
+
+        repository
+    }
+
+    fn read_game_mods_file(repository: &TempDir) -> String {
+        fs::read_to_string(game_mods_file_path(repository)).unwrap()
+    }
+
+    fn game_mods_file_path(repository: &TempDir) -> PathBuf {
+        repository
+            .path()
+            .join("db")
+            .join("renodx")
+            .join("game-mods.json")
+    }
+
+    fn game_mods_from(entries: Vec<GameMod>) -> GameMods {
+        let mut game_mods = GameMods::new();
+
+        for game_mod in entries {
+            game_mods.add(game_mod).unwrap();
+        }
+
+        game_mods
     }
 }
 

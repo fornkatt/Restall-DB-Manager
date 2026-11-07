@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Johan Lager
 // SPDX-License-Identifier: GPL-3.0-only
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -9,15 +9,14 @@ pub(super) struct SchemaVersionProbe {
     pub(super) schema_version: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct GameModsDocument {
-    #[expect(dead_code, reason = "read once the adapter writes the file")]
     pub(super) schema_version: u64,
     pub(super) games: Vec<GameModRecord>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct GameModRecord {
     pub(super) id: String,
@@ -28,7 +27,7 @@ pub(super) struct GameModRecord {
     pub(super) links: LinksRecord,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub(super) enum StatusRecord {
     #[serde(rename = "working")]
     Working,
@@ -36,7 +35,7 @@ pub(super) enum StatusRecord {
     WorkInProgress,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct LinksRecord {
     pub(super) snapshot_64: Option<String>,
