@@ -216,6 +216,7 @@ name = "application"
 version = "0.1.0"
 dependencies = [
  "domain",
+ "tracing",
 ]
 
 [[package]]
@@ -2237,6 +2238,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tracing",
 ]
 
 [[package]]
