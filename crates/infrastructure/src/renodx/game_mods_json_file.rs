@@ -80,7 +80,7 @@ impl StoreGameMods for GameModsJsonFile {
         match replace_if_unchanged_on_disk(&self.path, &temp_path, content.as_bytes(), expected) {
             Ok(()) => Ok(FileStamp::from_content(content.into_bytes())),
             Err(error) => {
-                let _ = fs::remove_file(&temp_path);
+                remove_temp_file(&temp_path);
                 Err(error)
             }
         }
@@ -295,6 +295,20 @@ fn replace_if_unchanged_on_disk(
     ensure_unchanged_on_disk(path, expected)?;
 
     fs::rename(temp_path, path).map_err(|error| write_error(path, error))
+}
+
+fn remove_temp_file(temp_path: &Path) {
+    match fs::remove_file(temp_path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => {
+            tracing::warn!(
+                path = %temp_path.display(),
+                error = %error,
+                "could not remove temp file",
+            );
+        }
+    }
 }
 
 fn write_file(path: &Path, content: &[u8]) -> io::Result<()> {
