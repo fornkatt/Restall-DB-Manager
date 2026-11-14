@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use super::*;
-
+use crate::component::ComponentNeeds;
 use crate::link::NexusModsUrl;
 use crate::renodx::{Addon32Url, Addon64Url, GameModParts, ModLinks, ModStatus};
 use crate::text::Maintainer;
@@ -332,6 +332,8 @@ fn game_mod_with_links(id_text: &str, name_text: &str, links: ModLinks) -> GameM
         status: ModStatus::Working,
         notes: None,
         links,
+        depends: ComponentNeeds::default(),
+        recommends: ComponentNeeds::default(),
     })
     .unwrap()
 }

@@ -5,8 +5,8 @@ use super::*;
 
 mod parse_game_mods {
     use super::*;
+    use domain::component::ComponentNeedsProblem;
     use domain::link::LinkProblem;
-    use domain::text::TextProblem;
 
     #[test]
     fn entries_are_returned_in_file_order() {
@@ -32,6 +32,44 @@ mod parse_game_mods {
             statuses,
             vec![ModStatus::Working, ModStatus::WorkInProgress]
         );
+    }
+
+    #[test]
+    fn missing_depends_and_recommends_read_as_empty() {
+        let text = document(&[entry("control", "Control", "working", NEXUS_ONLY_LINKS)]);
+        let game_mods = parse_game_mods(&text).unwrap();
+
+        assert_eq!(game_mods[0].depends(), &ComponentNeeds::default());
+        assert_eq!(game_mods[0].recommends(), &ComponentNeeds::default());
+    }
+
+    #[test]
+    fn depends_and_recommends_are_read_into_their_own_lists() {
+        let text = r#"{"schemaVersion": 1, "games": [{
+            "id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
+            "links": {"nexusMods": "https://www.nexusmods.com/control/mods/1"},
+            "depends": [{"component": "reFramework", "notes": null}],
+            "recommends": [{"component": "dxvkSource1ReShadeProxy", 
+            "notes": "Recommended by the wiki."}]
+        }]}"#;
+        let game_mods = parse_game_mods(text).unwrap();
+        let game_mod = &game_mods[0];
+
+        let recommended_notes = game_mod
+            .recommends()
+            .iter()
+            .map(|need| need.notes.as_ref().map(Notes::as_str))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            components_of(game_mod.depends()),
+            vec![Component::ReFramework]
+        );
+        assert_eq!(
+            components_of(game_mod.recommends()),
+            vec![Component::DxvkSource1ReShadeProxy]
+        );
+        assert_eq!(recommended_notes, vec![Some("Recommended by the wiki.")]);
     }
 
     #[test]
@@ -159,6 +197,44 @@ mod parse_game_mods {
                 })
             ),
             "{result:?}"
+        );
+    }
+
+    #[test]
+    fn unknown_key_in_a_component_need_is_an_unexpected_shape() {
+        let text = r#"{"schemaVersion": 1, "games": [{
+            "id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
+            "links": {"nexusMods": "https://www.nexusmods.com/control/mods/1"},
+            "depends": [{"component": "reFramework", "notes": null, "version": "1.5"}]
+        }]}"#;
+        let result = parse_game_mods(text);
+
+        assert!(
+            matches!(result, Err(LoadGameModsError::UnexpectedShape { .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn duplicate_component_in_depends_is_reported() {
+        let text = r#"{"schemaVersion": 1, "games": [{
+            "id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
+            "links": {"nexusMods": "https://www.nexusmods.com/control/mods/1"},
+            "depends": [
+                {"component": "reFramework", "notes": null},
+                {"component": "reFramework", "notes": "Listed twice by mistake."}
+            ]
+        }]}"#;
+        let result = parse_game_mods(text);
+        let Err(LoadGameModsError::InvalidEntries(problems)) = result else {
+            panic!("expected InvalidEntries, got {result:?}");
+        };
+
+        assert_eq!(
+            problems[0].problem,
+            EntryFieldProblem::Depends(ComponentNeedsProblem::DuplicateComponent(
+                Component::ReFramework
+            ))
         );
     }
 
@@ -332,6 +408,10 @@ mod store {
         "discord": "https://discord.gg/renodx",
         "discussion": "https://github.com/clshortfuse/renodx/discussions/490"
     }"#;
+    const EVERY_FIELD_DEPENDS: &str =
+        r#"[{"component": "reFramework", "notes": "Base dinput8.dll only."}]"#;
+    const EVERY_FIELD_RECOMMENDS: &str =
+        r#"[{"component": "dxvkSource1ReShadeProxy", "notes": null}]"#;
     const MINIMAL_ENTRY_IN_ANOTHER_KEY_ORDER: &str = r#"{
         "links": {"nexusMods": "https://www.nexusmods.com/alanwake/mods/1"},
         "status": "wip", "maintainer": "John Rust", "name": "Alan Wake", "id": "alan-wake"
@@ -352,7 +432,9 @@ mod store {
         "gameBanana": null,
         "discord": null,
         "discussion": null
-      }
+      },
+      "depends": [],
+      "recommends": []
     },
     {
       "id": "control",
@@ -367,15 +449,30 @@ mod store {
         "gameBanana": "https://gamebanana.com/mods/680225",
         "discord": "https://discord.gg/renodx",
         "discussion": "https://github.com/clshortfuse/renodx/discussions/490"
-      }
+      },
+      "depends": [
+        {
+          "component": "reFramework",
+          "notes": "Base dinput8.dll only."
+        }
+      ],
+      "recommends": [
+        {
+          "component": "dxvkSource1ReShadeProxy",
+          "notes": null
+        }
+      ]
     }
   ]
 }
 "#;
 
     fn every_field_entry() -> String {
-        entry("control", "Control", "working", EVERY_FIELD_LINKS)
-            .replace(r#""notes": null"#, r#""notes": "Lacks testing.""#)
+        format!(
+            r#"{{"id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
+        "notes": "Lacks testing.", "links": {EVERY_FIELD_LINKS},
+        "depends": {EVERY_FIELD_DEPENDS}, "recommends": {EVERY_FIELD_RECOMMENDS}}}"#
+        )
     }
 
     fn repository_containing(text: &str) -> TempDir {
@@ -434,4 +531,13 @@ fn ids_of(game_mods: &[GameMod]) -> Vec<&str> {
         .iter()
         .map(|game_mod| game_mod.id().as_str())
         .collect()
+}
+
+fn components_of(needs: &ComponentNeeds) -> Vec<Component> {
+    let mut components = Vec::new();
+
+    for need in needs {
+        components.push(need.component);
+    }
+    components
 }

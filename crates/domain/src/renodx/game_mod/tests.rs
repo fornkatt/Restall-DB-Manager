@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 use super::*;
+use crate::component::ComponentNeed;
 
 mod game_mod {
     use super::*;
@@ -43,6 +44,22 @@ mod game_mod {
     }
 
     #[test]
+    fn component_in_depends_and_recommends_is_invalid() {
+        let parts = GameModParts {
+            depends: needs(&[Component::ReFramework, Component::DxvkSource1ReShadeProxy]),
+            recommends: needs(&[Component::DxvkSource1ReShadeProxy]),
+            ..parts_with(nexus_only_links())
+        };
+
+        assert_eq!(
+            GameMod::new(parts),
+            Err(GameModProblem::ComponentInBothLists(
+                Component::DxvkSource1ReShadeProxy
+            ))
+        );
+    }
+
+    #[test]
     fn into_parts_returns_the_parts_it_was_built_from() {
         let links = ModLinks {
             discord: Some(DiscordUrl::parse("https://discord.com/invite/renodx").unwrap()),
@@ -73,6 +90,29 @@ mod game_mod {
             status: ModStatus::Working,
             notes: None,
             links,
+            depends: ComponentNeeds::default(),
+            recommends: ComponentNeeds::default(),
         }
+    }
+
+    fn nexus_only_links() -> ModLinks {
+        ModLinks {
+            nexus_mods: Some(
+                NexusModsUrl::parse("https://www.nexusmods.com/avowed/mods/101").unwrap(),
+            ),
+            ..links_without_any()
+        }
+    }
+
+    fn needs(components: &[Component]) -> ComponentNeeds {
+        let mut needs = Vec::new();
+
+        for component in components {
+            needs.push(ComponentNeed {
+                component: *component,
+                notes: None,
+            });
+        }
+        ComponentNeeds::new(needs).unwrap()
     }
 }

@@ -5,6 +5,7 @@
 mod tests;
 
 use crate::FileStamp;
+use domain::component::{Component, ComponentNeedsProblem};
 use domain::id::ModIdProblem;
 use domain::link::LinkProblem;
 use domain::renodx::{GameMod, GameModProblem, GameMods};
@@ -74,6 +75,16 @@ pub enum EntryFieldProblem {
     GameBanana(LinkProblem),
     Discord(LinkProblem),
     Discussion(LinkProblem),
+    Depends(ComponentNeedsProblem),
+    Recommends(ComponentNeedsProblem),
+    DependsNotes {
+        component: Component,
+        problem: TextProblem,
+    },
+    RecommendsNotes {
+        component: Component,
+        problem: TextProblem,
+    },
     Entry(GameModProblem),
 }
 
