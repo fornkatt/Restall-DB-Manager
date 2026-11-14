@@ -3,6 +3,7 @@
 
 use super::*;
 use crate::renodx::game_mods::{LoadGameModsError, StoreGameModsError};
+use domain::component::ComponentNeeds;
 use domain::link::NexusModsUrl;
 use domain::renodx::{GameModParts, ModLinks, ModStatus};
 use domain::text::Maintainer;
@@ -174,6 +175,8 @@ fn game_mod(id: &str, name: &str) -> GameMod {
             discord: None,
             discussion: None,
         },
+        depends: ComponentNeeds::default(),
+        recommends: ComponentNeeds::default(),
     })
     .unwrap()
 }

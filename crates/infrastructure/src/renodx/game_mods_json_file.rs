@@ -10,13 +10,17 @@ use application::renodx::game_mods::{
     EntryFieldProblem, EntryProblem, LoadGameMods, LoadGameModsError, LoadedGameMods,
     StoreGameMods, StoreGameModsError,
 };
+use domain::component::{Component, ComponentNeed, ComponentNeeds};
 use domain::id::ModId;
 use domain::link::{DiscordUrl, DiscussionUrl, GameBananaUrl, NexusModsUrl};
 use domain::renodx::{
     Addon32Url, Addon64Url, GameMod, GameModParts, GameMods, ModLinks, ModStatus,
 };
-use domain::text::{GameName, Maintainer, Notes};
-use record::{GameModRecord, GameModsDocument, LinksRecord, SchemaVersionProbe, StatusRecord};
+use domain::text::{GameName, Maintainer, Notes, TextProblem};
+use record::{
+    ComponentNeedRecord, ComponentRecord, GameModRecord, GameModsDocument, LinksRecord,
+    SchemaVersionProbe, StatusRecord,
+};
 use serde_json::error::Category;
 use std::fs::File;
 use std::io::Write;
@@ -179,6 +183,8 @@ fn game_mod_from_record(record: &GameModRecord) -> Result<GameMod, EntryFieldPro
         status: mod_status_from_record(record.status),
         notes: notes_from_record(record.notes.as_deref())?,
         links: links_from_record(&record.links)?,
+        depends: depends_from_records(&record.depends)?,
+        recommends: recommends_from_records(&record.recommends)?,
     };
 
     GameMod::new(parts).map_err(EntryFieldProblem::Entry)
@@ -233,6 +239,60 @@ fn links_from_record(record: &LinksRecord) -> Result<ModLinks, EntryFieldProblem
     })
 }
 
+fn depends_from_records(
+    records: &[ComponentNeedRecord],
+) -> Result<ComponentNeeds, EntryFieldProblem> {
+    let needs =
+        needs_from_records(records).map_err(|notes_problem| EntryFieldProblem::DependsNotes {
+            component: notes_problem.component,
+            problem: notes_problem.problem,
+        })?;
+    ComponentNeeds::new(needs).map_err(EntryFieldProblem::Depends)
+}
+
+fn recommends_from_records(
+    records: &[ComponentNeedRecord],
+) -> Result<ComponentNeeds, EntryFieldProblem> {
+    let needs = needs_from_records(records).map_err(|notes_problem| {
+        EntryFieldProblem::RecommendsNotes {
+            component: notes_problem.component,
+            problem: notes_problem.problem,
+        }
+    })?;
+    ComponentNeeds::new(needs).map_err(EntryFieldProblem::Recommends)
+}
+
+struct ComponentNotesProblem {
+    component: Component,
+    problem: TextProblem,
+}
+
+fn needs_from_records(
+    records: &[ComponentNeedRecord],
+) -> Result<Vec<ComponentNeed>, ComponentNotesProblem> {
+    let mut needs = Vec::with_capacity(records.len());
+
+    for record in records {
+        let component = component_from_record(record.component);
+        let notes = match record.notes.as_deref() {
+            Some(text) => Some(
+                Notes::parse(text)
+                    .map_err(|problem| ComponentNotesProblem { component, problem })?,
+            ),
+            None => None,
+        };
+        needs.push(ComponentNeed { component, notes });
+    }
+    Ok(needs)
+}
+
+fn component_from_record(component: ComponentRecord) -> Component {
+    match component {
+        ComponentRecord::ReFramework => Component::ReFramework,
+        ComponentRecord::DxvkSource1ReShadeProxy => Component::DxvkSource1ReShadeProxy,
+    }
+}
+
 fn render_game_mods(game_mods: &GameMods) -> String {
     let document = GameModsDocument {
         schema_version: SUPPORTED_SCHEMA_VERSION,
@@ -254,6 +314,8 @@ fn record_from_game_mod(game_mod: &GameMod) -> GameModRecord {
         status: status_record_from_mod_status(game_mod.status()),
         notes: game_mod.notes().map(|notes| notes.as_str().to_string()),
         links: links_record_from_mod_links(game_mod.links()),
+        depends: need_records_from_component_needs(game_mod.depends()),
+        recommends: need_records_from_component_needs(game_mod.recommends()),
     }
 }
 
@@ -281,6 +343,25 @@ fn links_record_from_mod_links(links: &ModLinks) -> LinksRecord {
         game_banana: game_banana.as_ref().map(|url| url.as_str().to_string()),
         discord: discord.as_ref().map(|url| url.as_str().to_string()),
         discussion: discussion.as_ref().map(|url| url.as_str().to_string()),
+    }
+}
+
+fn need_records_from_component_needs(needs: &ComponentNeeds) -> Vec<ComponentNeedRecord> {
+    let mut records = Vec::new();
+
+    for need in needs {
+        records.push(ComponentNeedRecord {
+            component: component_record_from_component(need.component),
+            notes: need.notes.as_ref().map(|notes| notes.as_str().to_string()),
+        });
+    }
+    records
+}
+
+fn component_record_from_component(component: Component) -> ComponentRecord {
+    match component {
+        Component::ReFramework => ComponentRecord::ReFramework,
+        Component::DxvkSource1ReShadeProxy => ComponentRecord::DxvkSource1ReShadeProxy,
     }
 }
 

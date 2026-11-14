@@ -25,6 +25,10 @@ pub(super) struct GameModRecord {
     pub(super) status: StatusRecord,
     pub(super) notes: Option<String>,
     pub(super) links: LinksRecord,
+    #[serde(default)]
+    pub(super) depends: Vec<ComponentNeedRecord>,
+    #[serde(default)]
+    pub(super) recommends: Vec<ComponentNeedRecord>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
@@ -44,4 +48,19 @@ pub(super) struct LinksRecord {
     pub(super) game_banana: Option<String>,
     pub(super) discord: Option<String>,
     pub(super) discussion: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(super) struct ComponentNeedRecord {
+    pub(super) component: ComponentRecord,
+    pub(super) notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub(super) enum ComponentRecord {
+    #[serde(rename = "reFramework")]
+    ReFramework,
+    #[serde(rename = "dxvkSource1ReShadeProxy")]
+    DxvkSource1ReShadeProxy,
 }

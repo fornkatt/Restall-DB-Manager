@@ -4,6 +4,7 @@
 use super::editor::{DuplicateEntry, DuplicateId};
 use super::{EntryFieldProblem, EntryProblem, LoadGameModsError, StoreGameModsError};
 use crate::Failure;
+use domain::component::{Component, ComponentNeedsProblem};
 use domain::id::{ModId, ModIdProblem};
 use domain::link::LinkProblem;
 use domain::renodx::{
@@ -224,7 +225,23 @@ fn field_problem_text(problem: EntryFieldProblem) -> String {
                 link_problem_phrase(problem)
             )
         }
-        EntryFieldProblem::Entry(problem) => game_mod_problem_text(problem).to_string(),
+        EntryFieldProblem::Depends(problem) => {
+            format!("depends {}", component_needs_problem_phrase(problem))
+        }
+        EntryFieldProblem::Recommends(problem) => {
+            format!("recommends {}", component_needs_problem_phrase(problem))
+        }
+        EntryFieldProblem::DependsNotes { component, problem } => format!(
+            "the depends notes text for {} {}",
+            component_name(component),
+            text_problem_phrase(problem)
+        ),
+        EntryFieldProblem::RecommendsNotes { component, problem } => format!(
+            "the recommends notes text for {} {}",
+            component_name(component),
+            text_problem_phrase(problem)
+        ),
+        EntryFieldProblem::Entry(problem) => game_mod_problem_text(problem),
     }
 }
 
@@ -263,11 +280,30 @@ fn link_problem_phrase(problem: LinkProblem) -> &'static str {
     }
 }
 
-fn game_mod_problem_text(problem: GameModProblem) -> &'static str {
+fn game_mod_problem_text(problem: GameModProblem) -> String {
     match problem {
         GameModProblem::NoSourceLink => {
-            "it has no source link (a snapshot, Nexus Mods, GameBanana or Discord link)"
+            "it has no source link (a snapshot, Nexus Mods, GameBanana or Discord link)".to_string()
         }
+        GameModProblem::ComponentInBothLists(component) => format!(
+            "{} is in both depends and recommends",
+            component_name(component)
+        ),
+    }
+}
+
+fn component_needs_problem_phrase(problem: ComponentNeedsProblem) -> String {
+    match problem {
+        ComponentNeedsProblem::DuplicateComponent(component) => {
+            format!("lists {} twice", component_name(component))
+        }
+    }
+}
+
+fn component_name(component: Component) -> &'static str {
+    match component {
+        Component::ReFramework => "REFramework",
+        Component::DxvkSource1ReShadeProxy => "the Source 1 DXVK proxy",
     }
 }
 

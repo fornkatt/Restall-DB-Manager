@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::component::{Component, ComponentNeeds};
 use crate::id::ModId;
 use crate::link::{DiscordUrl, DiscussionUrl, GameBananaUrl, NexusModsUrl};
 use crate::renodx::{Addon32Url, Addon64Url, ModStatus};
@@ -27,6 +28,8 @@ pub struct GameModParts {
     pub status: ModStatus,
     pub notes: Option<Notes>,
     pub links: ModLinks,
+    pub depends: ComponentNeeds,
+    pub recommends: ComponentNeeds,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -37,6 +40,7 @@ pub struct GameMod {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameModProblem {
     NoSourceLink,
+    ComponentInBothLists(Component),
 }
 
 impl ModLinks {
@@ -54,6 +58,9 @@ impl GameMod {
     pub fn new(parts: GameModParts) -> Result<GameMod, GameModProblem> {
         if !parts.links.has_source_link() {
             return Err(GameModProblem::NoSourceLink);
+        }
+        if let Some(component) = parts.depends.first_shared_component(&parts.recommends) {
+            return Err(GameModProblem::ComponentInBothLists(component));
         }
         Ok(GameMod { parts })
     }
@@ -77,5 +84,11 @@ impl GameMod {
     }
     pub fn links(&self) -> &ModLinks {
         &self.parts.links
+    }
+    pub fn depends(&self) -> &ComponentNeeds {
+        &self.parts.depends
+    }
+    pub fn recommends(&self) -> &ComponentNeeds {
+        &self.parts.recommends
     }
 }
