@@ -49,7 +49,7 @@ mod parse_game_mods {
             "id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
             "links": {"nexusMods": "https://www.nexusmods.com/control/mods/1"},
             "depends": [{"component": "reFramework", "notes": null}],
-            "recommends": [{"component": "dxvkSource1ReShadeProxy", 
+            "recommends": [{"component": "dxvkSource1ReShadeProxy",
             "notes": "Recommended by the wiki."}]
         }]}"#;
         let game_mods = parse_game_mods(text).unwrap();

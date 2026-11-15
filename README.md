@@ -17,10 +17,12 @@ On Linux, you also need these development packages (names may differ depending o
 apt install libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig-dev
 ```
 
-Then run:
+Then run it with the folder of your mod database clone:
 ```sh
-cargo run -p restall-db-manager
+cargo run -p restall-db-manager -- path/to/database
 ```
+
+Without a folder, it looks in the current working folder.
 
 ## License
 

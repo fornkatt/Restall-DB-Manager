@@ -1,11 +1,51 @@
 // SPDX-FileCopyrightText: Johan Lager
 // SPDX-License-Identifier: GPL-3.0-only
 
+import { VerticalBox, ListView } from "std-widgets.slint";
+
+export struct GameModRow {
+    name: string,
+}
+
 export component MainWindow inherits Window {
+    in property <[GameModRow]> game-mods;
+    in property <[string]> notices;
+    in property <string> failure-summary;
+    in property <[string]> failure-details;
     title: "Restall DB Manager";
     preferred-width: 800px;
     preferred-height: 600px;
-    Text {
-        text: "Restall DB Manager";
+    VerticalBox {
+        HorizontalLayout {
+            ListView {
+                width: 240px;
+                for game-mod in root.game-mods: Text {
+                    text: game-mod.name;
+                    overflow: elide;
+                }
+            }
+            Rectangle { }
+        }
+        if root.failure-summary != "": Text {
+            text: root.failure-summary;
+            font-weight: 700;
+            wrap: word-wrap;
+        }
+        if root.failure-details.length > 0: ListView {
+            height: 120px;
+
+            for detail in root.failure-details: Text {
+                text: detail;
+                wrap: word-wrap;
+            }
+        }
+        if root.notices.length > 0: ListView {
+            height: 120px;
+
+            for notice in root.notices: Text {
+                text: notice;
+                wrap: word-wrap;
+            }
+        }
     }
 }
