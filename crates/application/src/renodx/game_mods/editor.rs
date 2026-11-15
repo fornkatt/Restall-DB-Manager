@@ -4,8 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use super::messages;
-use super::{LoadGameMods, LoadedGameMods, StoreGameMods};
+use super::{GameModSummary, LoadGameMods, LoadedGameMods, StoreGameMods, messages};
 use crate::{Failure, FileStamp};
 use domain::id::ModId;
 use domain::renodx::{GameMod, GameMods, GameModsProblem};
@@ -64,6 +63,15 @@ impl GameModsEditor {
                 Err(messages::store_failure(&error))
             }
         }
+    }
+
+    pub fn summaries(&self) -> Vec<GameModSummary> {
+        let mut summaries = Vec::with_capacity(self.game_mods.len());
+
+        for game_mod in &self.game_mods {
+            summaries.push(GameModSummary::from_game_mod(game_mod));
+        }
+        summaries
     }
 
     pub fn notices(&self) -> Vec<String> {

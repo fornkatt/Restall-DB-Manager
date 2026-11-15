@@ -91,6 +91,31 @@ mod save {
     }
 }
 
+mod summaries {
+    use super::*;
+
+    #[test]
+    fn every_entry_is_listed_with_its_own_name() {
+        let file = FakeGameModsFile::containing(vec![
+            game_mod("control", "Control"),
+            game_mod("alan-wake", "Alan Wake"),
+        ]);
+        let editor = GameModsEditor::open(&file).unwrap();
+
+        assert_eq!(
+            editor.summaries(),
+            vec![
+                GameModSummary {
+                    name: "Alan Wake".to_string(),
+                },
+                GameModSummary {
+                    name: "Control".to_string(),
+                }
+            ]
+        );
+    }
+}
+
 const ORIGINAL_DISK_CONTENT: &[u8] = b"the file as it was opened";
 const OUTSIDE_CHANGE: &[u8] = b"the file after someone edited it by hand";
 
