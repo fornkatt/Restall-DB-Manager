@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Johan Lager
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { VerticalBox, ListView } from "std-widgets.slint";
+import { VerticalBox, ListView, Button } from "std-widgets.slint";
 
 export struct GameModRow {
     name: string,
@@ -12,10 +12,22 @@ export component MainWindow inherits Window {
     in property <[string]> notices;
     in property <string> failure-summary;
     in property <[string]> failure-details;
+    callback reload-requested();
     title: "Restall DB Manager";
     preferred-width: 800px;
     preferred-height: 600px;
     VerticalBox {
+        HorizontalLayout {
+            alignment: start;
+
+            Button {
+                text: "Reload";
+                clicked => {
+                    root.reload-requested();
+                }
+            }
+        }
+
         HorizontalLayout {
             ListView {
                 width: 240px;
@@ -24,8 +36,10 @@ export component MainWindow inherits Window {
                     overflow: elide;
                 }
             }
+
             Rectangle { }
         }
+
         if root.failure-summary != "": Text {
             text: root.failure-summary;
             font-weight: 700;

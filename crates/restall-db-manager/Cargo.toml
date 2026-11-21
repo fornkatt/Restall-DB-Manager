@@ -10,6 +10,7 @@ publish.workspace = true
 application.workspace = true
 infrastructure.workspace = true
 ui.workspace = true
+worker.workspace = true
 
 [lints]
 workspace = true
