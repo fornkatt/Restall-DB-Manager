@@ -3574,6 +3574,7 @@ dependencies = [
  "application",
  "infrastructure",
  "ui",
+ "worker",
 ]
 
 [[package]]
@@ -4487,6 +4488,8 @@ dependencies = [
  "application",
  "slint",
  "slint-build",
+ "tracing",
+ "worker",
 ]
 
 [[package]]
@@ -5308,6 +5311,14 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-wlr",
+]
+
+[[package]]
+name = "worker"
+version = "0.1.0"
+dependencies = [
+ "application",
+ "domain",
 ]
 
 [[package]]
