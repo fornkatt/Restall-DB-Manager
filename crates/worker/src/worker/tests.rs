@@ -23,13 +23,13 @@ mod open_game_mods {
             game_mod("control-ultimate-edition", "Control"),
         ];
         let editor = GameModsEditor::open(&FakeGameModsFile::containing(entries.clone())).unwrap();
-        let (sink, delivired) = channel_sink();
+        let (sink, delivered) = channel_sink();
         let worker = Worker::start(FakeGameModsFile::containing(entries), sink).unwrap();
 
         worker.requests.open_game_mods().unwrap();
 
         assert_eq!(
-            delivired.recv_timeout(LONG_ENOUGH),
+            delivered.recv_timeout(LONG_ENOUGH),
             Ok(WorkResult::OpenGameMods(Ok(OpenedGameMods {
                 summaries: editor.summaries(),
                 notices: editor.notices(),
