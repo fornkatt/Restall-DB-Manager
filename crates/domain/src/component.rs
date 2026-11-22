@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::graphics_api::GraphicsApi;
 use crate::text::Notes;
 use std::slice;
 
@@ -30,6 +31,16 @@ pub struct ComponentNeeds {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComponentNeedsProblem {
     DuplicateComponent(Component),
+}
+
+impl Component {
+    /// The graphics API the game needs to be set to for this component, if it needs one.
+    pub fn graphics_api(self) -> Option<GraphicsApi> {
+        match self {
+            Component::ReFramework => None,
+            Component::DxvkSource1ReShadeProxy => Some(GraphicsApi::D3d9),
+        }
+    }
 }
 
 impl ComponentNeeds {

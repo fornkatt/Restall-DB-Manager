@@ -5,6 +5,7 @@ use super::editor::{DuplicateEntry, DuplicateId};
 use super::{EntryFieldProblem, EntryProblem, LoadGameModsError, StoreGameModsError};
 use crate::Failure;
 use domain::component::{Component, ComponentNeedsProblem};
+use domain::graphics_api::GraphicsApi;
 use domain::id::{ModId, ModIdProblem};
 use domain::link::LinkProblem;
 use domain::renodx::{
@@ -289,6 +290,16 @@ fn game_mod_problem_text(problem: GameModProblem) -> String {
             "{} is in both depends and recommends",
             component_name(component)
         ),
+        GameModProblem::ComponentNeedsOtherGraphicsApi {
+            component,
+            component_graphics_api,
+            required_graphics_api,
+        } => format!(
+            "{} needs {}, but the required graphics API is set to {}",
+            component_name(component),
+            graphics_api_name(component_graphics_api),
+            graphics_api_name(required_graphics_api)
+        ),
     }
 }
 
@@ -304,6 +315,17 @@ fn component_name(component: Component) -> &'static str {
     match component {
         Component::ReFramework => "REFramework",
         Component::DxvkSource1ReShadeProxy => "the Source 1 DXVK proxy",
+    }
+}
+
+fn graphics_api_name(graphics_api: GraphicsApi) -> &'static str {
+    match graphics_api {
+        GraphicsApi::D3d9 => "DirectX 9",
+        GraphicsApi::D3d10 => "DirectX 10",
+        GraphicsApi::D3d11 => "DirectX 11",
+        GraphicsApi::D3d12 => "DirectX 12",
+        GraphicsApi::OpenGl => "OpenGL",
+        GraphicsApi::Vulkan => "Vulkan",
     }
 }
 

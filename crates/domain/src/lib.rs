@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 pub mod component;
+pub mod graphics_api;
 pub mod id;
 pub mod link;
 pub mod renodx;

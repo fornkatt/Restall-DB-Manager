@@ -330,6 +330,7 @@ fn game_mod_with_links(id_text: &str, name_text: &str, links: ModLinks) -> GameM
         name: name(name_text),
         maintainer: Maintainer::parse("John Rust").unwrap(),
         status: ModStatus::Working,
+        required_graphics_api: None,
         notes: None,
         links,
         depends: ComponentNeeds::default(),
