@@ -11,6 +11,7 @@ use application::renodx::game_mods::{
     StoreGameMods, StoreGameModsError,
 };
 use domain::component::{Component, ComponentNeed, ComponentNeeds};
+use domain::graphics_api::GraphicsApi;
 use domain::id::ModId;
 use domain::link::{DiscordUrl, DiscussionUrl, GameBananaUrl, NexusModsUrl};
 use domain::renodx::{
@@ -18,8 +19,8 @@ use domain::renodx::{
 };
 use domain::text::{GameName, Maintainer, Notes, TextProblem};
 use record::{
-    ComponentNeedRecord, ComponentRecord, GameModRecord, GameModsDocument, LinksRecord,
-    SchemaVersionProbe, StatusRecord,
+    ComponentNeedRecord, ComponentRecord, GameModRecord, GameModsDocument, GraphicsApiRecord,
+    LinksRecord, SchemaVersionProbe, StatusRecord,
 };
 use serde_json::error::Category;
 use std::fs::File;
@@ -181,6 +182,7 @@ fn game_mod_from_record(record: &GameModRecord) -> Result<GameMod, EntryFieldPro
         name: GameName::parse(&record.name).map_err(EntryFieldProblem::Name)?,
         maintainer: Maintainer::parse(&record.maintainer).map_err(EntryFieldProblem::Maintainer)?,
         status: mod_status_from_record(record.status),
+        required_graphics_api: record.required_graphics_api.map(graphics_api_from_record),
         notes: notes_from_record(record.notes.as_deref())?,
         links: links_from_record(&record.links)?,
         depends: depends_from_records(&record.depends)?,
@@ -194,6 +196,17 @@ fn mod_status_from_record(status: StatusRecord) -> ModStatus {
     match status {
         StatusRecord::Working => ModStatus::Working,
         StatusRecord::WorkInProgress => ModStatus::WorkInProgress,
+    }
+}
+
+fn graphics_api_from_record(graphics_api_record: GraphicsApiRecord) -> GraphicsApi {
+    match graphics_api_record {
+        GraphicsApiRecord::D3d9 => GraphicsApi::D3d9,
+        GraphicsApiRecord::D3d10 => GraphicsApi::D3d10,
+        GraphicsApiRecord::D3d11 => GraphicsApi::D3d11,
+        GraphicsApiRecord::D3d12 => GraphicsApi::D3d12,
+        GraphicsApiRecord::OpenGl => GraphicsApi::OpenGl,
+        GraphicsApiRecord::Vulkan => GraphicsApi::Vulkan,
     }
 }
 
@@ -312,6 +325,9 @@ fn record_from_game_mod(game_mod: &GameMod) -> GameModRecord {
         name: game_mod.name().as_str().to_string(),
         maintainer: game_mod.maintainer().as_str().to_string(),
         status: status_record_from_mod_status(game_mod.status()),
+        required_graphics_api: game_mod
+            .required_graphics_api()
+            .map(graphics_api_record_from_graphics_api),
         notes: game_mod.notes().map(|notes| notes.as_str().to_string()),
         links: links_record_from_mod_links(game_mod.links()),
         depends: need_records_from_component_needs(game_mod.depends()),
@@ -323,6 +339,17 @@ fn status_record_from_mod_status(status: ModStatus) -> StatusRecord {
     match status {
         ModStatus::Working => StatusRecord::Working,
         ModStatus::WorkInProgress => StatusRecord::WorkInProgress,
+    }
+}
+
+fn graphics_api_record_from_graphics_api(graphics_api: GraphicsApi) -> GraphicsApiRecord {
+    match graphics_api {
+        GraphicsApi::D3d9 => GraphicsApiRecord::D3d9,
+        GraphicsApi::D3d10 => GraphicsApiRecord::D3d10,
+        GraphicsApi::D3d11 => GraphicsApiRecord::D3d11,
+        GraphicsApi::D3d12 => GraphicsApiRecord::D3d12,
+        GraphicsApi::OpenGl => GraphicsApiRecord::OpenGl,
+        GraphicsApi::Vulkan => GraphicsApiRecord::Vulkan,
     }
 }
 

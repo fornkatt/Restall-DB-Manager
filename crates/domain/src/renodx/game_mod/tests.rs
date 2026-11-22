@@ -60,6 +60,54 @@ mod game_mod {
     }
 
     #[test]
+    fn depends_source_1_dxvk_proxy_with_another_graphics_api_is_invalid() {
+        let parts = GameModParts {
+            required_graphics_api: Some(GraphicsApi::Vulkan),
+            depends: needs(&[Component::ReFramework, Component::DxvkSource1ReShadeProxy]),
+            ..parts_with(nexus_only_links())
+        };
+
+        assert_eq!(
+            GameMod::new(parts),
+            Err(GameModProblem::ComponentNeedsOtherGraphicsApi {
+                component: Component::DxvkSource1ReShadeProxy,
+                component_graphics_api: GraphicsApi::D3d9,
+                required_graphics_api: GraphicsApi::Vulkan,
+            })
+        );
+    }
+
+    #[test]
+    fn recommends_source_1_dxvk_proxy_with_another_graphics_api_is_invalid() {
+        let parts = GameModParts {
+            required_graphics_api: Some(GraphicsApi::D3d11),
+            recommends: needs(&[Component::DxvkSource1ReShadeProxy]),
+            ..parts_with(nexus_only_links())
+        };
+
+        assert_eq!(
+            GameMod::new(parts),
+            Err(GameModProblem::ComponentNeedsOtherGraphicsApi {
+                component: Component::DxvkSource1ReShadeProxy,
+                component_graphics_api: GraphicsApi::D3d9,
+                required_graphics_api: GraphicsApi::D3d11,
+            })
+        );
+    }
+
+    #[test]
+    fn source_1_dxvk_proxy_with_its_own_graphics_api_is_valid() {
+        let parts = GameModParts {
+            required_graphics_api: Some(GraphicsApi::D3d9),
+            recommends: needs(&[Component::DxvkSource1ReShadeProxy]),
+            ..parts_with(nexus_only_links())
+        };
+        let result = GameMod::new(parts);
+
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
     fn into_parts_returns_the_parts_it_was_built_from() {
         let links = ModLinks {
             discord: Some(DiscordUrl::parse("https://discord.com/invite/renodx").unwrap()),
@@ -88,6 +136,7 @@ mod game_mod {
             name: GameName::parse("Control").unwrap(),
             maintainer: Maintainer::parse("John (Rust)").unwrap(),
             status: ModStatus::Working,
+            required_graphics_api: None,
             notes: None,
             links,
             depends: ComponentNeeds::default(),

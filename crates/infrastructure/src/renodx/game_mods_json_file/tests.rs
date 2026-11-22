@@ -80,6 +80,7 @@ mod parse_game_mods {
         }]}"#;
         let game_mods = parse_game_mods(text).unwrap();
 
+        assert_eq!(game_mods[0].required_graphics_api(), None);
         assert_eq!(game_mods[0].notes(), None);
         assert_eq!(game_mods[0].links().snapshot_64, None);
     }
@@ -156,6 +157,43 @@ mod parse_game_mods {
 
         assert!(
             parser_message.starts_with("unknown field `rating`"),
+            "{parser_message}"
+        );
+    }
+
+    #[test]
+    fn every_graphics_api_spelling_is_read() {
+        let spellings = [
+            ("d3d9", GraphicsApi::D3d9),
+            ("d3d10", GraphicsApi::D3d10),
+            ("d3d11", GraphicsApi::D3d11),
+            ("d3d12", GraphicsApi::D3d12),
+            ("openGl", GraphicsApi::OpenGl),
+            ("vulkan", GraphicsApi::Vulkan),
+        ];
+
+        for (spelling, graphics_api) in spellings {
+            let text = document(&[entry_requiring(spelling)]);
+            let game_mods = parse_game_mods(&text).unwrap();
+
+            assert_eq!(
+                game_mods[0].required_graphics_api(),
+                Some(graphics_api),
+                "{spelling}"
+            );
+        }
+    }
+
+    #[test]
+    fn unknown_graphics_api_is_an_unexpected_shape() {
+        let text = document(&[entry_requiring("directX11")]);
+        let result = parse_game_mods(&text);
+        let Err(LoadGameModsError::UnexpectedShape { parser_message, .. }) = result else {
+            panic!("expected UnexpectedShape, got {result:?}");
+        };
+
+        assert!(
+            parser_message.starts_with("unknown variant `directX11`"),
             "{parser_message}"
         );
     }
@@ -272,6 +310,22 @@ mod parse_game_mods {
                 },
             ]
         );
+    }
+}
+
+mod render_game_mods {
+    use super::*;
+
+    #[test]
+    fn every_graphics_api_is_written_with_its_own_spelling() {
+        for spelling in ["d3d9", "d3d10", "d3d11", "d3d12", "openGl", "vulkan"] {
+            let entries = parse_game_mods(&document(&[entry_requiring(spelling)])).unwrap();
+            let game_mods = game_mods_from(entries);
+            let text = render_game_mods(&game_mods);
+            let expected = format!(r#""requiredGraphicsApi": "{spelling}""#);
+
+            assert!(text.contains(&expected), "{text}");
+        }
     }
 }
 
@@ -424,6 +478,7 @@ mod store {
       "name": "Alan Wake",
       "maintainer": "John Rust",
       "status": "wip",
+      "requiredGraphicsApi": null,
       "notes": null,
       "links": {
         "snapshot64": null,
@@ -441,6 +496,7 @@ mod store {
       "name": "Control",
       "maintainer": "John Rust",
       "status": "working",
+      "requiredGraphicsApi": "d3d9",
       "notes": "Lacks testing.",
       "links": {
         "snapshot64": "https://fornkatt.github.io/renodx/renodx-control.addon64",
@@ -470,7 +526,7 @@ mod store {
     fn every_field_entry() -> String {
         format!(
             r#"{{"id": "control", "name": "Control", "maintainer": "John Rust", "status": "working",
-        "notes": "Lacks testing.", "links": {EVERY_FIELD_LINKS},
+        "requiredGraphicsApi": "d3d9", "notes": "Lacks testing.", "links": {EVERY_FIELD_LINKS},
         "depends": {EVERY_FIELD_DEPENDS}, "recommends": {EVERY_FIELD_RECOMMENDS}}}"#
         )
     }
@@ -496,16 +552,6 @@ mod store {
             .join("renodx")
             .join("game-mods.json")
     }
-
-    fn game_mods_from(entries: Vec<GameMod>) -> GameMods {
-        let mut game_mods = GameMods::new();
-
-        for game_mod in entries {
-            game_mods.add(game_mod).unwrap();
-        }
-
-        game_mods
-    }
 }
 
 const NEXUS_ONLY_LINKS: &str = r#"{"snapshot64": null, "snapshot32": null,
@@ -526,6 +572,13 @@ fn entry(id: &str, name: &str, status: &str, links: &str) -> String {
     )
 }
 
+fn entry_requiring(graphics_api: &str) -> String {
+    entry("control", "Control", "working", NEXUS_ONLY_LINKS).replace(
+        r#""notes""#,
+        &format!(r#""requiredGraphicsApi": "{graphics_api}", "notes""#),
+    )
+}
+
 fn ids_of(game_mods: &[GameMod]) -> Vec<&str> {
     game_mods
         .iter()
@@ -540,4 +593,14 @@ fn components_of(needs: &ComponentNeeds) -> Vec<Component> {
         components.push(need.component);
     }
     components
+}
+
+fn game_mods_from(entries: Vec<GameMod>) -> GameMods {
+    let mut game_mods = GameMods::new();
+
+    for game_mod in entries {
+        game_mods.add(game_mod).unwrap();
+    }
+
+    game_mods
 }

@@ -23,6 +23,7 @@ pub(super) struct GameModRecord {
     pub(super) name: String,
     pub(super) maintainer: String,
     pub(super) status: StatusRecord,
+    pub(super) required_graphics_api: Option<GraphicsApiRecord>,
     pub(super) notes: Option<String>,
     pub(super) links: LinksRecord,
     #[serde(default)]
@@ -37,6 +38,22 @@ pub(super) enum StatusRecord {
     Working,
     #[serde(rename = "wip")]
     WorkInProgress,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub(super) enum GraphicsApiRecord {
+    #[serde(rename = "d3d9")]
+    D3d9,
+    #[serde(rename = "d3d10")]
+    D3d10,
+    #[serde(rename = "d3d11")]
+    D3d11,
+    #[serde(rename = "d3d12")]
+    D3d12,
+    #[serde(rename = "openGl")]
+    OpenGl,
+    #[serde(rename = "vulkan")]
+    Vulkan,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

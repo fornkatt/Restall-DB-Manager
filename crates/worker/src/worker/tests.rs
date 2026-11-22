@@ -180,6 +180,7 @@ fn game_mod(id: &str, name: &str) -> GameMod {
         name: GameName::parse(name).unwrap(),
         maintainer: Maintainer::parse("John Rust").unwrap(),
         status: ModStatus::Working,
+        required_graphics_api: None,
         notes: None,
         links: ModLinks {
             snapshot_64: None,

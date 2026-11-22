@@ -5,6 +5,7 @@
 mod tests;
 
 use crate::component::{Component, ComponentNeeds};
+use crate::graphics_api::GraphicsApi;
 use crate::id::ModId;
 use crate::link::{DiscordUrl, DiscussionUrl, GameBananaUrl, NexusModsUrl};
 use crate::renodx::{Addon32Url, Addon64Url, ModStatus};
@@ -26,6 +27,7 @@ pub struct GameModParts {
     pub name: GameName,
     pub maintainer: Maintainer,
     pub status: ModStatus,
+    pub required_graphics_api: Option<GraphicsApi>,
     pub notes: Option<Notes>,
     pub links: ModLinks,
     pub depends: ComponentNeeds,
@@ -41,6 +43,11 @@ pub struct GameMod {
 pub enum GameModProblem {
     NoSourceLink,
     ComponentInBothLists(Component),
+    ComponentNeedsOtherGraphicsApi {
+        component: Component,
+        component_graphics_api: GraphicsApi,
+        required_graphics_api: GraphicsApi,
+    },
 }
 
 impl ModLinks {
@@ -62,6 +69,9 @@ impl GameMod {
         if let Some(component) = parts.depends.first_shared_component(&parts.recommends) {
             return Err(GameModProblem::ComponentInBothLists(component));
         }
+        if let Some(problem) = graphics_api_problem(&parts) {
+            return Err(problem);
+        }
         Ok(GameMod { parts })
     }
     pub fn into_parts(self) -> GameModParts {
@@ -79,6 +89,9 @@ impl GameMod {
     pub fn status(&self) -> ModStatus {
         self.parts.status
     }
+    pub fn required_graphics_api(&self) -> Option<GraphicsApi> {
+        self.parts.required_graphics_api
+    }
     pub fn notes(&self) -> Option<&Notes> {
         self.parts.notes.as_ref()
     }
@@ -91,4 +104,21 @@ impl GameMod {
     pub fn recommends(&self) -> &ComponentNeeds {
         &self.parts.recommends
     }
+}
+
+fn graphics_api_problem(parts: &GameModParts) -> Option<GameModProblem> {
+    let required_graphics_api = parts.required_graphics_api?;
+
+    for need in parts.depends.iter().chain(parts.recommends.iter()) {
+        if let Some(component_graphics_api) = need.component.graphics_api()
+            && component_graphics_api != required_graphics_api
+        {
+            return Some(GameModProblem::ComponentNeedsOtherGraphicsApi {
+                component: need.component,
+                component_graphics_api,
+                required_graphics_api,
+            });
+        }
+    }
+    None
 }
